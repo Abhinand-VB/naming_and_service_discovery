@@ -10,6 +10,7 @@ This registry allows microservices to:
 
 from flask import Flask, request, jsonify
 from datetime import datetime
+import os
 import threading
 import time
 
@@ -19,9 +20,20 @@ app = Flask(__name__)
 registry = {}
 registry_lock = threading.Lock()
 
-# Configuration
-HEARTBEAT_TIMEOUT = 30  # seconds
-CLEANUP_INTERVAL = 10   # seconds
+def _env_int(name: str, default: int) -> int:
+    v = os.getenv(name)
+    if v is None or v.strip() == "":
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        return default
+
+
+# Configuration (overridable via env)
+HEARTBEAT_TIMEOUT = _env_int("HEARTBEAT_TIMEOUT_SECONDS", 30)  # seconds
+CLEANUP_INTERVAL = _env_int("CLEANUP_INTERVAL_SECONDS", 10)    # seconds
+REGISTRY_PORT = _env_int("REGISTRY_PORT", 5001)
 
 
 @app.route('/register', methods=['POST'])
@@ -286,10 +298,10 @@ if __name__ == '__main__':
     cleanup_thread = threading.Thread(target=cleanup_stale_services, daemon=True)
     cleanup_thread.start()
     
-    print("Service Registry starting on port 5001...")
+    print(f"Service Registry starting on port {REGISTRY_PORT}...")
     print(f"Heartbeat timeout: {HEARTBEAT_TIMEOUT}s")
     print(f"Cleanup interval: {CLEANUP_INTERVAL}s")
     
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=REGISTRY_PORT, debug=True)
 
 # Made with Bob

@@ -2,45 +2,36 @@
 
 ## 📐 System Overview
 
+### Mermaid diagram (recommended for submission)
+
+```mermaid
+flowchart LR
+  C[Client\n(src/client.py)]
+  R[Service Registry\n(service_registry_improved.py)\n:5001]
+  S1[user-service instance 1\n(src/user_service.py)\n:8001]
+  S2[user-service instance 2\n(src/user_service.py)\n:8002]
+
+  S1 -->|POST /register + POST /heartbeat| R
+  S2 -->|POST /register + POST /heartbeat| R
+  C -->|GET /discover/user-service| R
+  C -->|HTTP call to RANDOM instance\nGET /info| S1
+  C -->|HTTP call to RANDOM instance\nGET /info| S2
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Service Registry System                      │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │              Service Registry (Port 5000)               │    │
-│  │                                                          │    │
-│  │  ┌──────────────────────────────────────────────────┐  │    │
-│  │  │         In-Memory Registry Storage               │  │    │
-│  │  │                                                   │  │    │
-│  │  │  {                                                │  │    │
-│  │  │    "user-service": [                             │  │    │
-│  │  │      {                                            │  │    │
-│  │  │        "address": "http://localhost:8001",       │  │    │
-│  │  │        "registered_at": "2026-03-11T10:00:00",  │  │    │
-│  │  │        "last_heartbeat": "2026-03-11T10:05:30"  │  │    │
-│  │  │      }                                            │  │    │
-│  │  │    ],                                             │  │    │
-│  │  │    "payment-service": [...]                      │  │    │
-│  │  │  }                                                │  │    │
-│  │  └──────────────────────────────────────────────────┘  │    │
-│  │                                                          │    │
-│  │  ┌──────────────────────────────────────────────────┐  │    │
-│  │  │         Background Cleanup Thread                │  │    │
-│  │  │  • Runs every 10 seconds                         │  │    │
-│  │  │  • Removes stale services (no heartbeat > 30s)   │  │    │
-│  │  └──────────────────────────────────────────────────┘  │    │
-│  └────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              ▲
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│ User Service  │     │ User Service  │     │Payment Service│
-│  Instance 1   │     │  Instance 2   │     │  Instance 1   │
-│ Port 8001     │     │ Port 8003     │     │ Port 8002     │
-└───────────────┘     └───────────────┘     └───────────────┘
+
+### ASCII diagram (fallback)
+
+```
+        (discover)                    (random call each time)
+Client -----------> Registry ------------------------------+
+  |                 :5001                                 |
+  |                                                       |
+  +---------------------------------------------------+---+
+                                                      |
+                                              +-------+--------+
+                                              |                |
+                                       user-service #1   user-service #2
+                                         :8001              :8002
+                                      (register+hb)      (register+hb)
 ```
 
 ## 🔄 Request Flow Diagrams

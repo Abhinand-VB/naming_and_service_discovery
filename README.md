@@ -1,48 +1,90 @@
-# Service Registry - Distributed System Learning Project
+# Naming & Service Discovery (Microservices + Registry)
 
-A simple but functional service registry implementation for understanding service discovery in distributed systems.
+This repo implements **client-side service discovery** using a simple **service registry** plus a microservice that **self-registers** and sends heartbeats. A client discovers available instances dynamically and **calls a RANDOM instance each time**.
 
-## 🚀 Quick Start
+This is designed to be **submission-ready** for the assignment:
+- Run **2 instances** of the same service
+- Services **register** with a registry
+- Client **discovers** dynamically (no hardcoded instance list)
+- Client **randomly selects** an instance per call
 
-### Prerequisites
+## What’s inside
+- **Registry**: `service_registry_improved.py` (Flask, in-memory, heartbeats + cleanup)
+- **Service**: `src/user_service.py` (Flask, `/info` shows instance identity, self-registers + heartbeats)
+- **Client**: `src/client.py` (discovers instances and calls a RANDOM one per request)
 
-Python 3.8 or higher
+## Architecture
+See `ARCHITECTURE.md` for a Mermaid diagram and an ASCII fallback.
 
-### Installation
+## Prerequisites
+- Python 3.8+
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/ranjanr/ServiceRegistry.git
-cd ServiceRegistry
+## Quick start (Windows PowerShell)
+
+### Option A: One command demo
+
+```powershell
+.\run_demo.ps1
 ```
 
-2. **Create a virtual environment (Python 3.13+):**
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+### Option B: Manual steps (recommended for grading videos)
+
+**1) Create venv + install**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
+**2) Start the registry**
+
+```powershell
+.\.venv\Scripts\python.exe service_registry_improved.py
 ```
 
-### Running the Service Registry
+**3) Start service instance 1**
 
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate
-
-# Start the registry
-python3 service_registry_improved.py
+```powershell
+.\.venv\Scripts\python.exe -m src.user_service --port 8001 --advertise http://localhost:8001 --registry-url http://localhost:5001
 ```
 
-You should see:
+**4) Start service instance 2**
+
+```powershell
+.\.venv\Scripts\python.exe -m src.user_service --port 8002 --advertise http://localhost:8002 --registry-url http://localhost:5001
 ```
-Service Registry starting on port 5000...
-Heartbeat timeout: 30s
-Cleanup interval: 10s
+
+**5) Run the client (random calls)**
+
+```powershell
+.\.venv\Scripts\python.exe -m src.client --service-name user-service --registry-url http://localhost:5001 --calls 8
 ```
+
+## Expected output (proof of randomness)
+In the client logs you should see `chosen_instance=` alternating between `http://localhost:8001` and `http://localhost:8002` across calls (random selection), and `/info` responses that include the instance identity:
+- `{"service":"user-service","instance_id":"...","port":8001}`
+- `{"service":"user-service","instance_id":"...","port":8002}`
+
+## Demo video instructions
+See `demo_script.md` for a tight 2–3 minute narration + commands + what output to show.
+
+## Configuration (environment variables)
+- **Registry**
+  - `REGISTRY_PORT` (default `5001`)
+  - `HEARTBEAT_TIMEOUT_SECONDS` (default `30`)
+  - `CLEANUP_INTERVAL_SECONDS` (default `10`)
+- **Service (`src/user_service.py`)**
+  - `REGISTRY_URL` (default `http://localhost:5001`)
+  - `SERVICE_PORT` (default `8001`)
+  - `ADVERTISE_URL` (default computed)
+  - `HEARTBEAT_INTERVAL_SECONDS` (default `5`)
+  - `REGISTRY_WAIT_SECONDS` (default `15`)
+- **Client (`src/client.py`)**
+  - `REGISTRY_URL`, `TARGET_SERVICE`, `CALLS`, `CALL_PATH` (default `/info`)
+
+## Screenshots (placeholders for submission)
+- Add `docs/architecture.png` (optional screenshot of Mermaid diagram rendering)
+- Add `docs/demo-output.png` (screenshot of client showing different chosen instances)
 
 ## 📚 What is a Service Registry?
 
@@ -53,7 +95,7 @@ A **Service Registry** is a database of available service instances in a distrib
 - **Health Monitoring**: Track which services are alive and healthy
 - **Load Balancing**: Distribute requests across multiple service instances
 
-## 🏗️ Architecture
+## 🏗️ Architecture (high level)
 
 ```
 ┌─────────────┐         ┌─────────────────┐         ┌─────────────┐
@@ -65,7 +107,7 @@ A **Service Registry** is a database of available service instances in a distrib
                                  └──────── Heartbeat ───────┘
 ```
 
-## 📁 Project Files
+## 📁 Project Files (selected)
 
 ### 1. `service_registry.py` (Original Example)
 The basic implementation you provided - simple but functional.
@@ -92,8 +134,14 @@ Enhanced version with enterprise features.
 - ✅ **Detailed Responses**: Rich JSON responses with metadata
 - ✅ **Service Listing**: View all registered services
 
-### 3. `example_service.py`
-Demo client showing how services interact with the registry.
+### 3. `src/user_service.py`
+The microservice implementation used for grading: runs HTTP + self-registers + heartbeats.
+
+### 4. `src/client.py`
+Discovers instances dynamically and calls a **RANDOM** instance per request.
+
+### 5. `example_service.py` (legacy)
+Kept for backwards compatibility with earlier learning scripts; the new graded path is `src/`.
 
 ### 4. Kubernetes/Minikube Deployment
 - **Dockerfile** - Container image for the registry
@@ -191,27 +239,8 @@ curl http://<MINIKUBE_IP>:30001/health
 
 **See [KUBERNETES.md](KUBERNETES.md) for complete guide.**
 
-### Testing with Example Services
-
-**Terminal 1: Start the Registry**
-```bash
-python service_registry_improved.py
-```
-
-**Terminal 2: Start User Service (instance 1)**
-```bash
-python example_service.py service user-service 8001 --advertise http://localhost:8001
-```
-
-**Terminal 3: Start User Service (instance 2)**
-```bash
-python example_service.py service user-service 8002 --advertise http://localhost:8002
-```
-
-**Terminal 4: Client discovers + calls a random instance**
-```bash
-python example_service.py client user-service --times 10
-```
+### Testing with the graded microservice + client
+Use the “Manual steps” section above (or `run_demo.ps1`).
 
 ## 📡 API Endpoints
 
@@ -321,7 +350,7 @@ requests.post("http://registry:5001/register", json={
 When a service needs to call another service:
 - Ask the registry for available instances
 - Get list of addresses
-- Choose one (round-robin, random, etc.)
+- Choose one (**RANDOM** for this assignment)
 
 ```python
 # Discover payment service
@@ -388,6 +417,16 @@ Production-grade service registry with:
 5. **Monitoring**: Add metrics and logging
 6. **Clustering**: Multiple registry instances for high availability
 7. **Service Mesh**: Integrate with Istio or Linkerd
+
+## (Bonus) How this extends to a Service Mesh (Istio/Linkerd)
+In a service mesh, discovery/routing is typically handled by sidecars and control plane components:
+
+`App → Sidecar Proxy → Service Mesh`
+
+Benefits:
+- **Traffic routing**: retries, timeouts, weighted routing, canary releases
+- **Observability**: distributed tracing, metrics, request logs
+- **Security**: mTLS between services, policy enforcement
 
 ## 🧪 Testing with cURL
 
