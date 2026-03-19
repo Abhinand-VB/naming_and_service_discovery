@@ -14,7 +14,21 @@ This is designed to be **submission-ready** for the assignment:
 - **Client**: `src/client.py` (discovers instances and calls a RANDOM one per request)
 
 ## Architecture
-See `ARCHITECTURE.md` for a Mermaid diagram and an ASCII fallback.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for a Mermaid diagram and an ASCII fallback.
+
+## Assignment Deliverables
+See [`DELIVERABLES.md`](DELIVERABLES.md) for the full submission checklist.
+
+1. **GitHub repo**: this repository.
+2. **Architecture diagram**: see [`ARCHITECTURE.md`](ARCHITECTURE.md).
+3. **Demo video**: record a 2–3 minute walkthrough using [`demo_script.md`](demo_script.md) (and optionally `run_demo.ps1`).
+   - Save the recording as [`Demo_Video.mp4`](Demo_Video.mp4) in the repo root (rename if your course expects a different filename).
+
+### What the demo must prove
+- Two instances of the same service (`user-service`) are running on different ports.
+- Both instances register with the registry and send heartbeats.
+- The client discovers instances dynamically and **randomly selects** an instance on each call.
+- Each client call response from `/info` clearly identifies which instance handled the request.
 
 ## Prerequisites
 - Python 3.8+
